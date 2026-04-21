@@ -1,0 +1,75 @@
+<%- include('../partials/header', { title: 'Admin Dashboard', adminNav: true }) %>
+
+<section class="panel">
+  <h1>Player Directory</h1>
+  <form method="post" action="/admin/players" class="stack">
+    <label>Display Name <input name="display_name" required /></label>
+    <button type="submit" class="button">Save Player</button>
+  </form>
+
+  <div class="chips">
+    <% players.forEach((player) => { %>
+      <span class="chip"><%= player.display_name %></span>
+    <% }) %>
+  </div>
+</section>
+
+<section class="panel">
+  <h1>Create Tournament</h1>
+  <form method="post" action="/admin/tournaments" class="stack">
+    <div class="grid two-col">
+      <label>Name <input name="name" required /></label>
+      <label>Location <input name="location" /></label>
+      <label>Start Date/Time <input type="datetime-local" name="starts_at" /></label>
+      <label>Status
+        <select name="status">
+          <option value="upcoming">upcoming</option>
+          <option value="live">live</option>
+          <option value="completed">completed</option>
+        </select>
+      </label>
+      <label>Format
+        <select name="format">
+          <option value="single_elimination">single_elimination</option>
+          <option value="double_elimination">double_elimination</option>
+          <option value="round_robin_groups">round_robin_groups</option>
+        </select>
+      </label>
+      <label>Group Count (for round robin)
+        <input type="number" name="group_count" value="2" min="2" max="16" />
+      </label>
+    </div>
+
+    <label>Select players for this tournament (multi-select)
+      <select name="player_ids" multiple size="10">
+        <% players.forEach((player) => { %>
+          <option value="<%= player.id %>"><%= player.display_name %></option>
+        <% }) %>
+      </select>
+    </label>
+
+    <label class="checkbox-row">
+      <input type="checkbox" name="auto_draw" checked />
+      Auto-generate draw when tournament is created
+    </label>
+
+    <button type="submit" class="button">Create Tournament</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Manage Existing Tournaments</h2>
+  <div class="grid cards">
+    <% tournaments.forEach((t) => { %>
+      <article class="card">
+        <h3><%= t.name %></h3>
+        <p><%= t.location || 'TBA' %></p>
+        <p><strong>Format:</strong> <%= t.format %></p>
+        <p><span class="badge <%= t.status %>"><%= t.status %></span></p>
+        <a class="button" href="/admin/tournaments/<%= t.id %>">Manage</a>
+      </article>
+    <% }) %>
+  </div>
+</section>
+
+<%- include('../partials/footer') %>
