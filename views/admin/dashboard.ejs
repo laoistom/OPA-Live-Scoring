@@ -2,15 +2,14 @@
 
 <section class="panel">
   <h1>Player Directory</h1>
-  <form method="post" action="/admin/players" class="grid two-col">
+  <form method="post" action="/admin/players" class="stack">
     <label>Display Name <input name="display_name" required /></label>
-    <label>Seed Rank (lower = better) <input type="number" name="seed_rank" min="1" value="1000" /></label>
     <button type="submit" class="button">Save Player</button>
   </form>
 
   <div class="chips">
     <% players.forEach((player) => { %>
-      <span class="chip"><%= player.display_name %> (Seed Rank <%= player.seed_rank %>)</span>
+      <span class="chip"><%= player.display_name %></span>
     <% }) %>
   </div>
 </section>
@@ -44,7 +43,7 @@
     <label>Select players for this tournament (multi-select)
       <select name="player_ids" multiple size="10">
         <% players.forEach((player) => { %>
-          <option value="<%= player.id %>"><%= player.display_name %> (seed rank <%= player.seed_rank %>)</option>
+          <option value="<%= player.id %>"><%= player.display_name %></option>
         <% }) %>
       </select>
     </label>

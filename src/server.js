@@ -43,16 +43,20 @@ function nextPowerOfTwo(value) {
 }
 
 function seedPlayers(players) {
-  return [...players].sort((a, b) => a.seed_rank - b.seed_rank || a.display_name.localeCompare(b.display_name));
+  return [...players].sort((a, b) => {
+    const seedA = Number.isInteger(a.seed) ? a.seed : Number.MAX_SAFE_INTEGER;
+    const seedB = Number.isInteger(b.seed) ? b.seed : Number.MAX_SAFE_INTEGER;
+    return seedA - seedB || a.display_name.localeCompare(b.display_name);
+  });
 }
 
 async function fetchTournamentPlayers(tournamentId) {
   const result = await db.query(
-    `SELECT p.id, p.display_name, p.seed_rank, tp.seed, tp.group_label
+    `SELECT p.id, p.display_name, tp.seed, tp.group_label
      FROM tournament_players tp
      JOIN players p ON p.id = tp.player_id
      WHERE tp.tournament_id = $1
-     ORDER BY tp.seed ASC NULLS LAST, p.seed_rank ASC, p.display_name ASC`,
+     ORDER BY tp.seed ASC NULLS LAST, p.display_name ASC`,
     [tournamentId]
   );
   return result.rows;
@@ -353,7 +357,7 @@ app.post('/admin/logout', ensureAdmin, (req, res) => {
 app.get('/admin', ensureAdmin, async (_req, res, next) => {
   try {
     const tournaments = await db.query('SELECT * FROM tournaments ORDER BY created_at DESC');
-    const players = await db.query('SELECT * FROM players ORDER BY seed_rank ASC, display_name ASC');
+    const players = await db.query('SELECT * FROM players ORDER BY display_name ASC');
     res.render('admin/dashboard', { tournaments: tournaments.rows, players: players.rows });
   } catch (err) {
     next(err);
@@ -361,13 +365,13 @@ app.get('/admin', ensureAdmin, async (_req, res, next) => {
 });
 
 app.post('/admin/players', ensureAdmin, async (req, res, next) => {
-  const { display_name, seed_rank } = req.body;
+  const { display_name } = req.body;
   try {
     await db.query(
-      `INSERT INTO players (display_name, seed_rank)
-       VALUES ($1, $2)
-       ON CONFLICT (display_name) DO UPDATE SET seed_rank = EXCLUDED.seed_rank`,
-      [display_name, Number(seed_rank) || 1000]
+      `INSERT INTO players (display_name)
+       VALUES ($1)
+       ON CONFLICT (display_name) DO NOTHING`,
+      [display_name]
     );
     res.redirect('/admin');
   } catch (err) {
@@ -394,13 +398,8 @@ app.post('/admin/tournaments', ensureAdmin, async (req, res, next) => {
     const tournamentId = tournamentResult.rows[0].id;
 
     if (playerIds.length) {
-      const chosenPlayers = await db.query('SELECT * FROM players WHERE id = ANY($1::int[])', [playerIds]);
-      const seeded = seedPlayers(chosenPlayers.rows);
-      for (let i = 0; i < seeded.length; i += 1) {
-        await db.query(
-          'INSERT INTO tournament_players (tournament_id, player_id, seed) VALUES ($1, $2, $3)',
-          [tournamentId, seeded[i].id, i + 1]
-        );
+      for (const playerId of playerIds) {
+        await db.query('INSERT INTO tournament_players (tournament_id, player_id) VALUES ($1, $2)', [tournamentId, playerId]);
       }
     }
 
@@ -422,7 +421,7 @@ app.get('/admin/tournaments/:id', ensureAdmin, async (req, res, next) => {
 
     const playersResult = await fetchTournamentPlayers(tournamentId);
 
-    const allPlayersResult = await db.query('SELECT * FROM players ORDER BY seed_rank ASC, display_name ASC');
+    const allPlayersResult = await db.query('SELECT * FROM players ORDER BY display_name ASC');
 
     const matchesResult = await db.query(
       `SELECT m.*, pa.display_name AS player_a_name, pb.display_name AS player_b_name
@@ -463,15 +462,26 @@ app.post('/admin/tournaments/:id/players', ensureAdmin, async (req, res, next) =
       );
     }
 
-    const tournamentPlayers = await fetchTournamentPlayers(tournamentId);
-    const seeded = seedPlayers(tournamentPlayers);
-    for (let i = 0; i < seeded.length; i += 1) {
+    res.redirect(`/admin/tournaments/${tournamentId}`);
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post('/admin/tournaments/:id/seeds', ensureAdmin, async (req, res, next) => {
+  const tournamentId = Number(req.params.id);
+  const playerIds = Array.isArray(req.body.player_id) ? req.body.player_id : [req.body.player_id];
+  const seeds = Array.isArray(req.body.seed) ? req.body.seed : [req.body.seed];
+
+  try {
+    for (let i = 0; i < playerIds.length; i += 1) {
+      const playerId = Number(playerIds[i]);
+      const seedValue = seeds[i] ? Number(seeds[i]) : null;
       await db.query(
         'UPDATE tournament_players SET seed = $1 WHERE tournament_id = $2 AND player_id = $3',
-        [i + 1, tournamentId, seeded[i].id]
+        [seedValue, tournamentId, playerId]
       );
     }
-
     res.redirect(`/admin/tournaments/${tournamentId}`);
   } catch (err) {
     next(err);

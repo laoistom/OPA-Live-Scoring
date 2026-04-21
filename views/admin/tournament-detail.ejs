@@ -16,7 +16,7 @@
       <label>Multi-select players
         <select name="player_ids" multiple size="10">
           <% allPlayers.forEach((p) => { %>
-            <option value="<%= p.id %>"><%= p.display_name %> (seed rank <%= p.seed_rank %>)</option>
+            <option value="<%= p.id %>"><%= p.display_name %></option>
           <% }) %>
         </select>
       </label>
@@ -25,12 +25,17 @@
   </article>
 
   <article class="panel">
-    <h2>Tournament Entrants</h2>
-    <ul>
+    <h2>Tournament Entrants & Manual Seeding</h2>
+    <form method="post" action="/admin/tournaments/<%= tournament.id %>/seeds" class="stack">
       <% players.forEach((player) => { %>
-        <li>#<%= player.seed || '-' %> - <%= player.display_name %> (rank <%= player.seed_rank %>)</li>
+        <div class="score-update">
+          <div><strong><%= player.display_name %></strong></div>
+          <input type="hidden" name="player_id" value="<%= player.id %>" />
+          <label>Seed <input type="number" name="seed" min="1" value="<%= player.seed || '' %>" placeholder="Optional" /></label>
+        </div>
       <% }) %>
-    </ul>
+      <button type="submit" class="button">Save Seeds</button>
+    </form>
   </article>
 </section>
 

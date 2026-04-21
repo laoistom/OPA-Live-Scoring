@@ -7,7 +7,7 @@ A live-scoring web application inspired by Ultimate Pool's public scoring page, 
 - Public live-scoring pages for tournaments and matches.
 - Admin authentication with email/password + session management.
 - Admin dashboard to:
-  - Maintain a reusable global player directory with seed rank values.
+  - Maintain a reusable global player directory.
   - Create tournaments with multi-select player enrollment.
   - Auto-generate tournament draws (single elimination, double elimination, round robin groups).
   - Update match scores and statuses in real-time.
@@ -82,7 +82,7 @@ Notes:
 ## Drawing & Seeding behavior
 
 - Player selection for tournaments is multi-select from a reusable global player pool.
-- Seeding uses `seed_rank` (lower number = higher seed).
+- Seeding is managed manually by admins per tournament (not globally on players).
 - Supported auto-draw formats:
   - `single_elimination`
   - `double_elimination`
