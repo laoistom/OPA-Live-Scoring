@@ -59,9 +59,30 @@ Open:
 - Public live scoring: `http://localhost:3000`
 - Admin login: `http://localhost:3000/admin/login`
 
+## Run with Docker Compose
+
+This repository includes a Docker setup for both the app and PostgreSQL.
+
+1. Build and start containers:
+
+```bash
+docker compose up --build
+```
+
+2. Open:
+
+- Public live scoring: `http://localhost:3000`
+- Admin login: `http://localhost:3000/admin/login`
+
+Notes:
+- PostgreSQL is exposed on `localhost:5432`.
+- Database schema is auto-applied on first startup from `db/schema.sql`.
+- Admin account is auto-seeded at app startup from `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+
 ## Environment Variables
 
 - `PORT` - App port (default: `3000`)
+- `HOST` - Bind host for the Express server (default: `0.0.0.0`)
 - `DATABASE_URL` - PostgreSQL connection string
 - `SESSION_SECRET` - Secret for session signing
 - `ADMIN_EMAIL` - Admin email used by `seed-admin`
