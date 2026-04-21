@@ -89,6 +89,7 @@ Notes:
   - `round_robin_groups` (uses `group_count`)
 - The generated match playing order is shown in the public live scoring table.
 - For elimination draws, completed matches can auto-advance winners into the next linked stage.
+- If a fixture has one player and one `TBD`, it is treated as a walkover and auto-advanced.
 
 ## Environment Variables
 

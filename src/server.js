@@ -221,6 +221,51 @@ async function generateDraw(tournamentId) {
       inserted[i],
     ]);
   }
+
+  await autoAdvanceWalkovers(tournamentId);
+}
+
+async function autoAdvanceWalkovers(tournamentId) {
+  let hasChanges = true;
+
+  while (hasChanges) {
+    hasChanges = false;
+    const matchesResult = await db.query(
+      `SELECT id, player_a_id, player_b_id, score_a, score_b, status, next_match_id, next_slot
+       FROM matches
+       WHERE tournament_id = $1
+       ORDER BY play_order ASC NULLS LAST, id ASC`,
+      [tournamentId]
+    );
+
+    for (const match of matchesResult.rows) {
+      const hasPlayerA = Boolean(match.player_a_id);
+      const hasPlayerB = Boolean(match.player_b_id);
+      const isWalkover = hasPlayerA !== hasPlayerB;
+
+      if (!isWalkover || match.status === 'completed') continue;
+
+      const winnerId = match.player_a_id || match.player_b_id;
+      if (!winnerId) continue;
+
+      const scoreA = match.player_a_id ? 1 : 0;
+      const scoreB = match.player_b_id ? 1 : 0;
+
+      await db.query(
+        `UPDATE matches
+         SET status = 'completed', score_a = $1, score_b = $2, updated_at = NOW()
+         WHERE id = $3`,
+        [scoreA, scoreB, match.id]
+      );
+
+      if (match.next_match_id) {
+        const targetColumn = match.next_slot === 'A' ? 'player_a_id' : 'player_b_id';
+        await db.query(`UPDATE matches SET ${targetColumn} = $1 WHERE id = $2`, [winnerId, match.next_match_id]);
+      }
+
+      hasChanges = true;
+    }
+  }
 }
 
 app.get('/', async (_req, res, next) => {
@@ -474,6 +519,8 @@ app.post('/admin/tournaments/:id/matches/:matchId', ensureAdmin, async (req, res
         }
       }
     }
+
+    await autoAdvanceWalkovers(tournamentId);
     res.redirect(`/admin/tournaments/${tournamentId}`);
   } catch (err) {
     next(err);
