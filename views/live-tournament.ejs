@@ -1,0 +1,66 @@
+<%- include('partials/header', { title: tournament.name, adminNav: false }) %>
+
+<section class="hero compact">
+  <h1><%= tournament.name %></h1>
+  <p><%= tournament.location || 'Location TBA' %> · <%= tournament.status.toUpperCase() %> · <%= tournament.format %></p>
+</section>
+
+<section class="panel">
+  <h2>Playing Order</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Order</th>
+          <th>Round</th>
+          <th>Bracket/Group</th>
+          <th>Table</th>
+          <th>Match</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% matches.forEach((m) => { %>
+          <tr>
+            <td><%= m.play_order || '-' %></td>
+            <td><%= m.round_label || '-' %></td>
+            <td><%= m.bracket || '-' %></td>
+            <td><%= m.table_number || '-' %></td>
+            <td><%= m.player_a_name || 'TBD' %> vs <%= m.player_b_name || 'TBD' %></td>
+            <td><span class="badge <%= m.status %>"><%= m.status %></span></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="grid cards">
+  <% if (!matches.length) { %>
+    <p>No matches have been created yet.</p>
+  <% } %>
+  <% matches.forEach((m) => { %>
+    <article class="card score-card">
+      <div class="score-head">
+        <span>#<%= m.play_order || '-' %> · Table <%= m.table_number || '-' %></span>
+        <span class="badge <%= m.status %>"><%= m.status %></span>
+      </div>
+      <p class="round"><%= m.round_label || 'Open Round' %> · <%= m.bracket || 'main' %></p>
+      <div class="score-row">
+        <span><%= m.player_a_name || 'TBD' %></span>
+        <strong><%= m.score_a %></strong>
+      </div>
+      <div class="score-row">
+        <span><%= m.player_b_name || 'TBD' %></span>
+        <strong><%= m.score_b %></strong>
+      </div>
+      <small>Updated: <%= new Date(m.updated_at).toLocaleTimeString() %></small>
+    </article>
+  <% }) %>
+</section>
+
+<script>
+  setTimeout(() => window.location.reload(), 15000);
+</script>
+
+<%- include('partials/footer') %>

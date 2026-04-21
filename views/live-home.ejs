@@ -1,0 +1,25 @@
+<%- include('partials/header', { title: 'Live Scoring', adminNav: false }) %>
+
+<section class="hero">
+  <h1>Live Tournament Scoring</h1>
+  <p>Follow each event in real time.</p>
+</section>
+
+<section class="grid cards">
+  <% if (!tournaments.length) { %>
+    <p>No tournaments yet. Check back soon.</p>
+  <% } %>
+
+  <% tournaments.forEach((t) => { %>
+    <article class="card">
+      <h2><%= t.name %></h2>
+      <p><strong>Status:</strong> <span class="badge <%= t.status %>"><%= t.status %></span></p>
+      <p><strong>Location:</strong> <%= t.location || 'TBA' %></p>
+      <p><strong>Starts:</strong> <%= t.starts_at ? new Date(t.starts_at).toLocaleString() : 'TBA' %></p>
+      <p><strong>Matches:</strong> <%= t.match_count %> total / <%= t.live_count %> live</p>
+      <a class="button" href="/tournaments/<%= t.id %>">Open Live Board</a>
+    </article>
+  <% }) %>
+</section>
+
+<%- include('partials/footer') %>
