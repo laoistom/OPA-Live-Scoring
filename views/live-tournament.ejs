@@ -1,0 +1,59 @@
+<%- include('partials/header', { title: tournament.name, adminNav: false }) %>
+
+<section class="hero compact cuescore-hero">
+  <p class="subtle"><%= tournament.starts_at ? new Date(tournament.starts_at).toLocaleDateString() : 'Date TBA' %></p>
+  <h1><%= tournament.name %></h1>
+  <p><%= tournament.location || 'Location TBA' %> · <%= tournament.format.replaceAll('_', ' ') %></p>
+</section>
+
+<section class="panel">
+  <h2>Schedule</h2>
+  <div class="status-tabs">
+    <span class="tab-pill">Waiting <strong><%= summary.waiting %></strong></span>
+    <span class="tab-pill live">Playing <strong><%= summary.playing %></strong></span>
+    <span class="tab-pill done">Finished <strong><%= summary.finished %></strong></span>
+  </div>
+
+  <% Object.keys(groupedMatches).forEach((groupKey) => { 
+      const [roundName, bracketName] = groupKey.split('|');
+      const roundMatches = groupedMatches[groupKey];
+  %>
+    <section class="round-section">
+      <h3><%= roundName %> <small>(<%= bracketName %>)</small></h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Table</th>
+              <th>Player A</th>
+              <th></th>
+              <th>Player B</th>
+              <th>Score</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% roundMatches.forEach((m) => { %>
+              <tr>
+                <td><%= m.play_order || '-' %></td>
+                <td><%= m.table_number || '-' %></td>
+                <td><%= m.player_a_name || 'TBD' %></td>
+                <td>vs</td>
+                <td><%= m.player_b_name || 'TBD' %></td>
+                <td><strong><%= m.score_a %> - <%= m.score_b %></strong></td>
+                <td><span class="badge <%= m.status %>"><%= m.status %></span></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  <% }) %>
+</section>
+
+<script>
+  setTimeout(() => window.location.reload(), 15000);
+</script>
+
+<%- include('partials/footer') %>

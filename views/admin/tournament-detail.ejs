@@ -1,0 +1,65 @@
+<%- include('../partials/header', { title: `Manage ${tournament.name}`, adminNav: true }) %>
+
+<section class="panel">
+  <h1><%= tournament.name %> Management</h1>
+  <p><strong>Format:</strong> <%= tournament.format %></p>
+  <p><a href="/tournaments/<%= tournament.id %>">View Live Board</a></p>
+  <form method="post" action="/admin/tournaments/<%= tournament.id %>/draw">
+    <button class="button" type="submit">Rebuild Automated Draw</button>
+  </form>
+</section>
+
+<section class="grid split">
+  <article class="panel">
+    <h2>Add Existing Players</h2>
+    <form method="post" action="/admin/tournaments/<%= tournament.id %>/players" class="stack">
+      <label>Multi-select players
+        <select name="player_ids" multiple size="10">
+          <% allPlayers.forEach((p) => { %>
+            <option value="<%= p.id %>"><%= p.display_name %></option>
+          <% }) %>
+        </select>
+      </label>
+      <button type="submit" class="button">Add Selected Players</button>
+    </form>
+  </article>
+
+  <article class="panel">
+    <h2>Tournament Entrants & Manual Seeding</h2>
+    <form method="post" action="/admin/tournaments/<%= tournament.id %>/seeds" class="stack">
+      <% players.forEach((player) => { %>
+        <div class="score-update">
+          <div><strong><%= player.display_name %></strong></div>
+          <input type="hidden" name="player_id" value="<%= player.id %>" />
+          <label>Seed <input type="number" name="seed" min="1" value="<%= player.seed || '' %>" placeholder="Optional" /></label>
+        </div>
+      <% }) %>
+      <button type="submit" class="button">Save Seeds</button>
+    </form>
+  </article>
+</section>
+
+<section class="panel">
+  <h2>Draw / Playing Order</h2>
+  <div class="stack">
+    <% matches.forEach((m) => { %>
+      <form method="post" action="/admin/tournaments/<%= tournament.id %>/matches/<%= m.id %>" class="score-update">
+        <div>
+          <strong>#<%= m.play_order || '-' %> - <%= m.player_a_name || 'TBD' %> vs <%= m.player_b_name || 'TBD' %></strong>
+          <div><%= m.round_label || 'Open Round' %> · <%= m.bracket || 'main' %></div>
+        </div>
+        <input type="number" name="table_number" value="<%= m.table_number || '' %>" min="1" placeholder="Table" />
+        <input type="number" name="score_a" value="<%= m.score_a %>" min="0" />
+        <input type="number" name="score_b" value="<%= m.score_b %>" min="0" />
+        <select name="status">
+          <option value="scheduled" <%= m.status === 'scheduled' ? 'selected' : '' %>>scheduled</option>
+          <option value="in_progress" <%= m.status === 'in_progress' ? 'selected' : '' %>>in_progress</option>
+          <option value="completed" <%= m.status === 'completed' ? 'selected' : '' %>>completed</option>
+        </select>
+        <button class="button" type="submit">Save</button>
+      </form>
+    <% }) %>
+  </div>
+</section>
+
+<%- include('../partials/footer') %>
