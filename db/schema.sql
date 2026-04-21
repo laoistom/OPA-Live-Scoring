@@ -42,6 +42,8 @@ CREATE TABLE IF NOT EXISTS matches (
   bracket TEXT,
   player_a_id INTEGER REFERENCES players(id) ON DELETE SET NULL,
   player_b_id INTEGER REFERENCES players(id) ON DELETE SET NULL,
+  next_match_id INTEGER REFERENCES matches(id) ON DELETE SET NULL,
+  next_slot TEXT CHECK (next_slot IN ('A', 'B')),
   score_a INTEGER NOT NULL DEFAULT 0,
   score_b INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'in_progress', 'completed')),

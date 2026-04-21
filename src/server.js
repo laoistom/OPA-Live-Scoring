@@ -62,38 +62,63 @@ function createSingleEliminationMatches(players) {
   const seeded = seedPlayers(players);
   const size = nextPowerOfTwo(Math.max(2, seeded.length));
   const slots = Array.from({ length: size }, (_, i) => seeded[i] || null);
-  const matches = [];
+  const rounds = [];
   let order = 1;
+  let tempCounter = 1;
 
+  const roundOne = [];
   for (let i = 0; i < size / 2; i += 1) {
     const playerA = slots[i];
     const playerB = slots[size - 1 - i];
-    matches.push({
+    roundOne.push({
+      tempIndex: tempCounter++,
       play_order: order++,
       round_label: 'Round 1',
       bracket: 'main',
       player_a_id: playerA?.id || null,
       player_b_id: playerB?.id || null,
+      next_temp_index: null,
+      next_slot: null,
     });
   }
+  rounds.push(roundOne);
 
   let roundSize = size / 2;
   let roundNumber = 2;
   while (roundSize > 1) {
+    const thisRound = [];
     for (let i = 0; i < roundSize / 2; i += 1) {
-      matches.push({
+      thisRound.push({
+        tempIndex: tempCounter++,
         play_order: order++,
         round_label: `Round ${roundNumber}`,
         bracket: 'main',
         player_a_id: null,
         player_b_id: null,
+        next_temp_index: null,
+        next_slot: null,
       });
     }
+    rounds.push(thisRound);
     roundSize /= 2;
     roundNumber += 1;
   }
 
-  return matches;
+  for (let r = 0; r < rounds.length - 1; r += 1) {
+    for (let i = 0; i < rounds[r].length; i += 1) {
+      rounds[r][i].next_temp_index = rounds[r + 1][Math.floor(i / 2)].tempIndex;
+      rounds[r][i].next_slot = i % 2 === 0 ? 'A' : 'B';
+    }
+  }
+
+  const matches = [];
+  rounds.forEach((round) => {
+    round.forEach((match) => {
+      matches.push({ ...match });
+    });
+  });
+
+  return matches.sort((a, b) => a.play_order - b.play_order);
 }
 
 function createDoubleEliminationMatches(players) {
@@ -108,6 +133,8 @@ function createDoubleEliminationMatches(players) {
       bracket: 'losers',
       player_a_id: null,
       player_b_id: null,
+      next_temp_index: null,
+      next_slot: null,
     });
   }
 
@@ -117,6 +144,8 @@ function createDoubleEliminationMatches(players) {
     bracket: 'grand_final',
     player_a_id: null,
     player_b_id: null,
+    next_temp_index: null,
+    next_slot: null,
   });
 
   return winners;
@@ -143,6 +172,8 @@ function createRoundRobinGroupMatches(players, groupCount) {
           bracket: `group_${String.fromCharCode(65 + groupIndex)}`,
           player_a_id: groupPlayers[i].id,
           player_b_id: groupPlayers[j].id,
+          next_temp_index: null,
+          next_slot: null,
         });
       }
     }
@@ -170,12 +201,25 @@ async function generateDraw(tournamentId) {
 
   await db.query('DELETE FROM matches WHERE tournament_id = $1', [tournamentId]);
 
+  const inserted = [];
   for (const match of matches) {
-    await db.query(
+    const insertedMatch = await db.query(
       `INSERT INTO matches (tournament_id, play_order, round_label, bracket, player_a_id, player_b_id)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id`,
       [tournamentId, match.play_order, match.round_label, match.bracket, match.player_a_id, match.player_b_id]
     );
+    inserted.push(insertedMatch.rows[0].id);
+  }
+
+  for (let i = 0; i < matches.length; i += 1) {
+    if (!matches[i].next_temp_index) continue;
+    const nextMatchDbId = inserted[matches[i].next_temp_index - 1];
+    await db.query('UPDATE matches SET next_match_id = $1, next_slot = $2 WHERE id = $3', [
+      nextMatchDbId,
+      matches[i].next_slot,
+      inserted[i],
+    ]);
   }
 }
 
@@ -210,9 +254,24 @@ app.get('/tournaments/:id', async (req, res, next) => {
       [id]
     );
 
+    const groupedMatches = matchesResult.rows.reduce((acc, match) => {
+      const key = `${match.round_label || 'Round'}|${match.bracket || 'main'}`;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(match);
+      return acc;
+    }, {});
+
+    const summary = {
+      waiting: matchesResult.rows.filter((m) => m.status === 'scheduled').length,
+      playing: matchesResult.rows.filter((m) => m.status === 'in_progress').length,
+      finished: matchesResult.rows.filter((m) => m.status === 'completed').length,
+    };
+
     res.render('live-tournament', {
       tournament: tournamentResult.rows[0],
       matches: matchesResult.rows,
+      groupedMatches,
+      summary,
     });
   } catch (err) {
     next(err);
@@ -396,6 +455,25 @@ app.post('/admin/tournaments/:id/matches/:matchId', ensureAdmin, async (req, res
        WHERE id = $5 AND tournament_id = $6`,
       [Number(score_a) || 0, Number(score_b) || 0, status, Number(table_number) || null, matchId, tournamentId]
     );
+
+    if (status === 'completed') {
+      const matchResult = await db.query(
+        'SELECT player_a_id, player_b_id, score_a, score_b, next_match_id, next_slot FROM matches WHERE id = $1 AND tournament_id = $2',
+        [matchId, tournamentId]
+      );
+      const match = matchResult.rows[0];
+
+      if (match?.next_match_id && match.player_a_id && match.player_b_id) {
+        let winnerId = null;
+        if (match.score_a > match.score_b) winnerId = match.player_a_id;
+        if (match.score_b > match.score_a) winnerId = match.player_b_id;
+
+        if (winnerId) {
+          const column = match.next_slot === 'A' ? 'player_a_id' : 'player_b_id';
+          await db.query(`UPDATE matches SET ${column} = $1 WHERE id = $2`, [winnerId, match.next_match_id]);
+        }
+      }
+    }
     res.redirect(`/admin/tournaments/${tournamentId}`);
   } catch (err) {
     next(err);

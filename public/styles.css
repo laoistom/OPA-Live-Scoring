@@ -87,6 +87,15 @@ input, select {
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 10px; border-bottom: 1px solid #334769; }
+.cuescore-hero { border-bottom: 1px solid #2f4267; margin-bottom: 12px; }
+.subtle { color: var(--muted); text-transform: uppercase; font-size: .8rem; letter-spacing: .08em; }
+.status-tabs { display: flex; gap: 10px; margin: 10px 0 18px; flex-wrap: wrap; }
+.tab-pill { padding: 8px 12px; border: 1px solid #465d87; border-radius: 999px; background: #182540; color: #dbe6ff; }
+.tab-pill.live { border-color: #24d89a; }
+.tab-pill.done { border-color: #ff9d6f; }
+.round-section { margin-top: 18px; }
+.round-section h3 { margin-bottom: 8px; }
+.round-section small { color: var(--muted); font-weight: 400; }
 @media (max-width: 880px) {
   .split, .two-col, .score-update { grid-template-columns: 1fr; }
 }

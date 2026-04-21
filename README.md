@@ -88,6 +88,7 @@ Notes:
   - `double_elimination`
   - `round_robin_groups` (uses `group_count`)
 - The generated match playing order is shown in the public live scoring table.
+- For elimination draws, completed matches can auto-advance winners into the next linked stage.
 
 ## Environment Variables
 
