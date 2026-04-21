@@ -71,6 +71,22 @@ input, select {
 }
 .narrow { max-width: 420px; margin: 30px auto; }
 .error { color: #ff8888; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #162340;
+  border: 1px solid #35507d;
+  font-size: .85rem;
+}
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 10px; border-bottom: 1px solid #334769; }
 @media (max-width: 880px) {
   .split, .two-col, .score-update { grid-template-columns: 1fr; }
 }

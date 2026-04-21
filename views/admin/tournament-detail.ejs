@@ -2,60 +2,48 @@
 
 <section class="panel">
   <h1><%= tournament.name %> Management</h1>
+  <p><strong>Format:</strong> <%= tournament.format %></p>
   <p><a href="/tournaments/<%= tournament.id %>">View Live Board</a></p>
+  <form method="post" action="/admin/tournaments/<%= tournament.id %>/draw">
+    <button class="button" type="submit">Rebuild Automated Draw</button>
+  </form>
 </section>
 
 <section class="grid split">
   <article class="panel">
-    <h2>Add Player</h2>
+    <h2>Add Existing Players</h2>
     <form method="post" action="/admin/tournaments/<%= tournament.id %>/players" class="stack">
-      <label>Display Name <input name="display_name" required /></label>
-      <button type="submit" class="button">Add Player</button>
+      <label>Multi-select players
+        <select name="player_ids" multiple size="10">
+          <% allPlayers.forEach((p) => { %>
+            <option value="<%= p.id %>"><%= p.display_name %> (seed rank <%= p.seed_rank %>)</option>
+          <% }) %>
+        </select>
+      </label>
+      <button type="submit" class="button">Add Selected Players</button>
     </form>
-
-    <h3>Players</h3>
-    <ul>
-      <% players.forEach((player) => { %>
-        <li><%= player.display_name %></li>
-      <% }) %>
-    </ul>
   </article>
 
   <article class="panel">
-    <h2>Create Match</h2>
-    <form method="post" action="/admin/tournaments/<%= tournament.id %>/matches" class="stack">
-      <label>Table Number <input type="number" name="table_number" /></label>
-      <label>Round Label <input name="round_label" placeholder="Quarterfinal" /></label>
-      <label>Player A
-        <select name="player_a_id">
-          <option value="">TBD</option>
-          <% players.forEach((p) => { %>
-            <option value="<%= p.id %>"><%= p.display_name %></option>
-          <% }) %>
-        </select>
-      </label>
-      <label>Player B
-        <select name="player_b_id">
-          <option value="">TBD</option>
-          <% players.forEach((p) => { %>
-            <option value="<%= p.id %>"><%= p.display_name %></option>
-          <% }) %>
-        </select>
-      </label>
-      <button class="button" type="submit">Create Match</button>
-    </form>
+    <h2>Tournament Entrants</h2>
+    <ul>
+      <% players.forEach((player) => { %>
+        <li>#<%= player.seed || '-' %> - <%= player.display_name %> (rank <%= player.seed_rank %>)</li>
+      <% }) %>
+    </ul>
   </article>
 </section>
 
 <section class="panel">
-  <h2>Update Scores</h2>
+  <h2>Draw / Playing Order</h2>
   <div class="stack">
     <% matches.forEach((m) => { %>
       <form method="post" action="/admin/tournaments/<%= tournament.id %>/matches/<%= m.id %>" class="score-update">
         <div>
-          <strong><%= m.player_a_name || 'TBD' %> vs <%= m.player_b_name || 'TBD' %></strong>
-          <div>Table <%= m.table_number || '-' %> · <%= m.round_label || 'Open Round' %></div>
+          <strong>#<%= m.play_order || '-' %> - <%= m.player_a_name || 'TBD' %> vs <%= m.player_b_name || 'TBD' %></strong>
+          <div><%= m.round_label || 'Open Round' %> · <%= m.bracket || 'main' %></div>
         </div>
+        <input type="number" name="table_number" value="<%= m.table_number || '' %>" min="1" placeholder="Table" />
         <input type="number" name="score_a" value="<%= m.score_a %>" min="0" />
         <input type="number" name="score_b" value="<%= m.score_b %>" min="0" />
         <select name="status">

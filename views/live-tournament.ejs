@@ -2,7 +2,37 @@
 
 <section class="hero compact">
   <h1><%= tournament.name %></h1>
-  <p><%= tournament.location || 'Location TBA' %> · <%= tournament.status.toUpperCase() %></p>
+  <p><%= tournament.location || 'Location TBA' %> · <%= tournament.status.toUpperCase() %> · <%= tournament.format %></p>
+</section>
+
+<section class="panel">
+  <h2>Playing Order</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Order</th>
+          <th>Round</th>
+          <th>Bracket/Group</th>
+          <th>Table</th>
+          <th>Match</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% matches.forEach((m) => { %>
+          <tr>
+            <td><%= m.play_order || '-' %></td>
+            <td><%= m.round_label || '-' %></td>
+            <td><%= m.bracket || '-' %></td>
+            <td><%= m.table_number || '-' %></td>
+            <td><%= m.player_a_name || 'TBD' %> vs <%= m.player_b_name || 'TBD' %></td>
+            <td><span class="badge <%= m.status %>"><%= m.status %></span></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
 </section>
 
 <section class="grid cards">
@@ -12,10 +42,10 @@
   <% matches.forEach((m) => { %>
     <article class="card score-card">
       <div class="score-head">
-        <span>Table <%= m.table_number || '-' %></span>
+        <span>#<%= m.play_order || '-' %> · Table <%= m.table_number || '-' %></span>
         <span class="badge <%= m.status %>"><%= m.status %></span>
       </div>
-      <p class="round"><%= m.round_label || 'Open Round' %></p>
+      <p class="round"><%= m.round_label || 'Open Round' %> · <%= m.bracket || 'main' %></p>
       <div class="score-row">
         <span><%= m.player_a_name || 'TBD' %></span>
         <strong><%= m.score_a %></strong>

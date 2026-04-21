@@ -7,9 +7,9 @@ A live-scoring web application inspired by Ultimate Pool's public scoring page, 
 - Public live-scoring pages for tournaments and matches.
 - Admin authentication with email/password + session management.
 - Admin dashboard to:
-  - Create tournaments.
-  - Add players to a tournament.
-  - Create matches and assign players.
+  - Maintain a reusable global player directory with seed rank values.
+  - Create tournaments with multi-select player enrollment.
+  - Auto-generate tournament draws (single elimination, double elimination, round robin groups).
   - Update match scores and statuses in real-time.
 - PostgreSQL as the backing store for users, tournaments, players, and match data.
 
@@ -78,6 +78,16 @@ Notes:
 - PostgreSQL is exposed on `localhost:5432`.
 - Database schema is auto-applied on first startup from `db/schema.sql`.
 - Admin account is auto-seeded at app startup from `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+
+## Drawing & Seeding behavior
+
+- Player selection for tournaments is multi-select from a reusable global player pool.
+- Seeding uses `seed_rank` (lower number = higher seed).
+- Supported auto-draw formats:
+  - `single_elimination`
+  - `double_elimination`
+  - `round_robin_groups` (uses `group_count`)
+- The generated match playing order is shown in the public live scoring table.
 
 ## Environment Variables
 
