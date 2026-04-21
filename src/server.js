@@ -226,12 +226,36 @@ async function generateDraw(tournamentId) {
     ]);
   }
 
-  await autoAdvanceWalkovers(tournamentId);
+  await recomputeProgression(tournamentId);
 }
 
-async function autoAdvanceWalkovers(tournamentId) {
-  let hasChanges = true;
+async function recomputeProgression(tournamentId) {
+  const feederResult = await db.query(
+    `SELECT next_match_id, next_slot
+     FROM matches
+     WHERE tournament_id = $1
+       AND next_match_id IS NOT NULL
+       AND next_slot IS NOT NULL`,
+    [tournamentId]
+  );
 
+  const feederSlots = new Set(feederResult.rows.map((row) => `${row.next_match_id}:${row.next_slot}`));
+
+  if (feederSlots.size > 0) {
+    await db.query(
+      `UPDATE matches
+       SET player_a_id = CASE WHEN EXISTS (
+         SELECT 1 FROM matches src WHERE src.tournament_id = $1 AND src.next_match_id = matches.id AND src.next_slot = 'A'
+       ) THEN NULL ELSE player_a_id END,
+           player_b_id = CASE WHEN EXISTS (
+         SELECT 1 FROM matches src WHERE src.tournament_id = $1 AND src.next_match_id = matches.id AND src.next_slot = 'B'
+       ) THEN NULL ELSE player_b_id END
+       WHERE tournament_id = $1`,
+      [tournamentId]
+    );
+  }
+
+  let hasChanges = true;
   while (hasChanges) {
     hasChanges = false;
     const matchesResult = await db.query(
@@ -245,29 +269,44 @@ async function autoAdvanceWalkovers(tournamentId) {
     for (const match of matchesResult.rows) {
       const hasPlayerA = Boolean(match.player_a_id);
       const hasPlayerB = Boolean(match.player_b_id);
-      const isWalkover = hasPlayerA !== hasPlayerB;
+      const missingSlot = hasPlayerA && !hasPlayerB ? 'B' : !hasPlayerA && hasPlayerB ? 'A' : null;
+      const hasUnresolvedFeederForMissingSlot = missingSlot ? feederSlots.has(`${match.id}:${missingSlot}`) : false;
+      const isTrueWalkover = Boolean(missingSlot) && !hasUnresolvedFeederForMissingSlot;
 
-      if (!isWalkover || match.status === 'completed') continue;
-
-      const winnerId = match.player_a_id || match.player_b_id;
-      if (!winnerId) continue;
-
-      const scoreA = match.player_a_id ? 1 : 0;
-      const scoreB = match.player_b_id ? 1 : 0;
-
-      await db.query(
-        `UPDATE matches
-         SET status = 'completed', score_a = $1, score_b = $2, updated_at = NOW()
-         WHERE id = $3`,
-        [scoreA, scoreB, match.id]
-      );
-
-      if (match.next_match_id) {
-        const targetColumn = match.next_slot === 'A' ? 'player_a_id' : 'player_b_id';
-        await db.query(`UPDATE matches SET ${targetColumn} = $1 WHERE id = $2`, [winnerId, match.next_match_id]);
+      if (isTrueWalkover && match.status !== 'completed') {
+        await db.query(
+          `UPDATE matches
+           SET status = 'completed',
+               score_a = $1,
+               score_b = $2,
+               updated_at = NOW()
+           WHERE id = $3`,
+          [hasPlayerA ? 1 : 0, hasPlayerB ? 1 : 0, match.id]
+        );
+        hasChanges = true;
       }
 
-      hasChanges = true;
+      let winnerId = null;
+      if (match.status === 'completed') {
+        if (hasPlayerA && hasPlayerB) {
+          if (match.score_a > match.score_b) winnerId = match.player_a_id;
+          if (match.score_b > match.score_a) winnerId = match.player_b_id;
+        } else if (isTrueWalkover) {
+          winnerId = match.player_a_id || match.player_b_id;
+        }
+      }
+
+      if (winnerId && match.next_match_id && match.next_slot) {
+        const targetColumn = match.next_slot === 'A' ? 'player_a_id' : 'player_b_id';
+        const updateResult = await db.query(
+          `UPDATE matches
+           SET ${targetColumn} = $1
+           WHERE id = $2
+             AND (${targetColumn} IS DISTINCT FROM $1)`,
+          [winnerId, match.next_match_id]
+        );
+        if (updateResult.rowCount > 0) hasChanges = true;
+      }
     }
   }
 }
@@ -511,26 +550,7 @@ app.post('/admin/tournaments/:id/matches/:matchId', ensureAdmin, async (req, res
       [Number(score_a) || 0, Number(score_b) || 0, status, Number(table_number) || null, matchId, tournamentId]
     );
 
-    if (status === 'completed') {
-      const matchResult = await db.query(
-        'SELECT player_a_id, player_b_id, score_a, score_b, next_match_id, next_slot FROM matches WHERE id = $1 AND tournament_id = $2',
-        [matchId, tournamentId]
-      );
-      const match = matchResult.rows[0];
-
-      if (match?.next_match_id && match.player_a_id && match.player_b_id) {
-        let winnerId = null;
-        if (match.score_a > match.score_b) winnerId = match.player_a_id;
-        if (match.score_b > match.score_a) winnerId = match.player_b_id;
-
-        if (winnerId) {
-          const column = match.next_slot === 'A' ? 'player_a_id' : 'player_b_id';
-          await db.query(`UPDATE matches SET ${column} = $1 WHERE id = $2`, [winnerId, match.next_match_id]);
-        }
-      }
-    }
-
-    await autoAdvanceWalkovers(tournamentId);
+    await recomputeProgression(tournamentId);
     res.redirect(`/admin/tournaments/${tournamentId}`);
   } catch (err) {
     next(err);

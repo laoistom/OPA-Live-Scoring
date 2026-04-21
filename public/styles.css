@@ -62,7 +62,7 @@ input, select {
 .round { color: var(--muted); margin-top: 0; }
 .score-update {
   display: grid;
-  grid-template-columns: 1fr 80px 80px 160px auto;
+  grid-template-columns: minmax(260px, 1fr) 90px 80px 80px 170px auto;
   gap: 10px;
   align-items: center;
   padding: 10px;
