@@ -1,0 +1,15 @@
+<%- include('../partials/header', { title: 'Admin Login', adminNav: false }) %>
+
+<section class="panel narrow">
+  <h1>Admin Login</h1>
+  <% if (error) { %>
+    <p class="error"><%= error %></p>
+  <% } %>
+  <form method="post" action="/admin/login" class="stack">
+    <label>Email <input type="email" name="email" required /></label>
+    <label>Password <input type="password" name="password" required /></label>
+    <button type="submit" class="button">Sign In</button>
+  </form>
+</section>
+
+<%- include('../partials/footer') %>

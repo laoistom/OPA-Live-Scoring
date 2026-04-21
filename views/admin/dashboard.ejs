@@ -1,0 +1,34 @@
+<%- include('../partials/header', { title: 'Admin Dashboard', adminNav: true }) %>
+
+<section class="panel">
+  <h1>Create Tournament</h1>
+  <form method="post" action="/admin/tournaments" class="grid two-col">
+    <label>Name <input name="name" required /></label>
+    <label>Location <input name="location" /></label>
+    <label>Start Date/Time <input type="datetime-local" name="starts_at" /></label>
+    <label>Status
+      <select name="status">
+        <option value="upcoming">upcoming</option>
+        <option value="live">live</option>
+        <option value="completed">completed</option>
+      </select>
+    </label>
+    <button type="submit" class="button">Create Tournament</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Manage Existing Tournaments</h2>
+  <div class="grid cards">
+    <% tournaments.forEach((t) => { %>
+      <article class="card">
+        <h3><%= t.name %></h3>
+        <p><%= t.location || 'TBA' %></p>
+        <p><span class="badge <%= t.status %>"><%= t.status %></span></p>
+        <a class="button" href="/admin/tournaments/<%= t.id %>">Manage</a>
+      </article>
+    <% }) %>
+  </div>
+</section>
+
+<%- include('../partials/footer') %>
