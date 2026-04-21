@@ -1,0 +1,36 @@
+<%- include('partials/header', { title: tournament.name, adminNav: false }) %>
+
+<section class="hero compact">
+  <h1><%= tournament.name %></h1>
+  <p><%= tournament.location || 'Location TBA' %> · <%= tournament.status.toUpperCase() %></p>
+</section>
+
+<section class="grid cards">
+  <% if (!matches.length) { %>
+    <p>No matches have been created yet.</p>
+  <% } %>
+  <% matches.forEach((m) => { %>
+    <article class="card score-card">
+      <div class="score-head">
+        <span>Table <%= m.table_number || '-' %></span>
+        <span class="badge <%= m.status %>"><%= m.status %></span>
+      </div>
+      <p class="round"><%= m.round_label || 'Open Round' %></p>
+      <div class="score-row">
+        <span><%= m.player_a_name || 'TBD' %></span>
+        <strong><%= m.score_a %></strong>
+      </div>
+      <div class="score-row">
+        <span><%= m.player_b_name || 'TBD' %></span>
+        <strong><%= m.score_b %></strong>
+      </div>
+      <small>Updated: <%= new Date(m.updated_at).toLocaleTimeString() %></small>
+    </article>
+  <% }) %>
+</section>
+
+<script>
+  setTimeout(() => window.location.reload(), 15000);
+</script>
+
+<%- include('partials/footer') %>
